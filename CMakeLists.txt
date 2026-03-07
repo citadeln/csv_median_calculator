@@ -16,7 +16,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# toml++
+# toml++ С single_include ФИКСОМ!
 FetchContent_Declare(
     tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
@@ -37,9 +37,14 @@ add_executable(csv_median_calculator
     src/market_record.hpp
 )
 
+# ✅ КРИТИЧНО: toml++ single_include путь!
+target_include_directories(csv_median_calculator PRIVATE 
+    src
+    ${tomlplusplus_SOURCE_DIR}/single_include  # ← ЭТО РЕШАЕТ toml.hpp!
+)
+
 target_link_libraries(csv_median_calculator PRIVATE
     spdlog::spdlog
-    tomlplusplus::tomlplusplus
     Boost::program_options
 )
 
@@ -48,10 +53,9 @@ target_compile_options(csv_median_calculator PRIVATE
     -Wno-unused-parameter
 )
 
-target_include_directories(csv_median_calculator PRIVATE src)
-
 set_target_properties(csv_median_calculator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
 message(STATUS "🚀 csv_median_calculator C++23 configured!")
+message(STATUS "📁 toml++ path: ${tomlplusplus_SOURCE_DIR}/single_include")

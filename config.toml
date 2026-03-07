@@ -1,4 +1,4 @@
 [main]
-    input = './data'
-    output = './output'
-    filename_mask = ['level', 'trade']
+input = './data'
+output = './output'
+filename_mask = ['level', 'trade']
