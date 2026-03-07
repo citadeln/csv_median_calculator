@@ -6,23 +6,24 @@
 #include <fstream>
 #include <iomanip>
 #include <boost/program_options.hpp>
+#include <algorithm>  // std::stable_sort
+#include <ranges>
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
-int main(int argc_, char* argv_[]) {
+int main(int argc, char* argv[]) {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     spdlog::info("🚀 csv_median_calculator v2.0 C++23");
 
     try {
-        // ТЗ: ./app --config config.toml
         po::options_description desc("Options");
         desc.add_options()
             ("config,c", po::value<std::string>(), "config.toml path")
             ("help,h", "show help");
 
         po::variables_map vm;
-        po::store(po::parse_command_line(argc_, argv_, desc), vm);
+        po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
 
         if (vm.count("help")) {
@@ -30,40 +31,45 @@ int main(int argc_, char* argv_[]) {
             return 0;
         }
 
-        fs::path config_path_ = vm["config"].as<std::string>();
-        auto config_ = csv_median::parse_config(config_path_);
-        
-        // ТЗ: output_dir или ./output
-        if (config_.output_dir_.empty()) {
-            config_.output_dir_ = "./output";
-        }
-        fs::create_directories(config_.output_dir_);
+        // ТЗ: --config config.toml или config.toml в текущей папке
+        fs::path config_path = vm.count("config") ? 
+            fs::path(vm["config"].as<std::string>()) : "config.toml";
+            
+        auto config = csv_median::parse_config(config_path);
+        fs::create_directories(config.output_dir);
 
-        auto events_ = csv_median::read_csv_files(config_.input_dir_, config_.filename_mask_);
+        // Читаем CSV файлы
+        auto events = csv_median::read_csv_files(config.input_dir, config.filename_mask);
         
-        csv_median::calculator calc_;
-        for (const auto& event_ : events_) {
-            calc_.add_price(event_.price);
+        // ТЗ: std::stable_sort по receive_ts
+        std::stable_sort(events.begin(), events.end(), 
+            [](const auto& a, const auto& b) { return a.receive_ts < b.receive_ts; });
+        
+        spdlog::info("📊 Total events: {}", events.size());
+
+        // Инкрементальная медиана (ТЗ)
+        csv_median::MedianCalculator calc;
+        auto output_path = config.output_dir / "median_result.csv";
+        std::ofstream out(output_path);
+        out << "receive_ts;price_median\n";
+        out.precision(8);
+        out << std::fixed;
+
+        double prev_median = 0.0;
+        for (const auto& event : events) {
+            calc.add_price(event.price);
+            if (auto median = calc.median()) {
+                out << event.receive_ts << ";" << *median << "\n";
+                prev_median = *median;
+                spdlog::debug("📈 {}: {:.8f}", event.receive_ts, *median);
+            }
         }
 
-        // ТЗ: median_result.csv + 8 decimals + semicolon
-        auto output_path_ = config_.output_dir_ / "median_result.csv";
-        std::ofstream out_(output_path_);
-        out_ << "receive_ts;price_median\n";
-        out_.precision(8);
-        out_.setf(std::ios::fixed);
-        
-        if (auto median_ = calc_.median()) {
-            out_ << events_.back().receive_ts << ";" << *median_ << "\n";
-            spdlog::info("💾 {}: {:.8f}", output_path_.string(), *median_);
-        }
+        spdlog::info("💾 Saved: {} ({} changes)", output_path.string(), /* count changes */);
 
-    } catch (const std::exception& ex_) {
-        spdlog::error("💥 {}", ex_.what());
+    } catch (const std::exception& ex) {
+        spdlog::error("💥 {}", ex.what());
         return 1;
-    } catch (...) {
-        spdlog::critical("💀 Unknown exception");
-        return 255;
     }
     return 0;
 }

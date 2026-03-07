@@ -1,49 +1,100 @@
 #include "csv_reader.hpp"
 #include <spdlog/spdlog.h>
-#include <filesystem>
+#include <ranges>
 #include <fstream>
 #include <algorithm>
-#include <regex>
 
 namespace csv_median {
-    std::vector<market_record_t> read_csv_files(
-        const std::filesystem::path& input_dir_, 
-        const std::vector<std::string>& filename_mask_) {
-        
-        std::vector<market_record_t> records_;
-        
-        if (!std::filesystem::exists(input_dir_) || !std::filesystem::is_directory(input_dir_)) {
-            spdlog::warn("Input dir not found: {}", input_dir_.string());
-            return records_;
-        }
+namespace fs = std::filesystem;
+namespace views = std::views;
 
-        // ТЗ: фильтр по filename_mask
-        for (const auto& entry : std::filesystem::directory_iterator(input_dir_)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".csv") {
-                bool match = filename_mask_.empty(); // [] = все CSV
-                
-                for (const auto& mask : filename_mask_) {
-                    if (entry.path().filename().string().find(mask) != std::string::npos) {
-                        match = true;
-                        break;
-                    }
-                }
-                
-                if (match) {
-                    // Demo данные ТЗ
-                    records_.emplace_back(market_record_t{1716810808663260ULL + records_.size(), 68480.0 + records_.size() * 0.1});
+std::vector<MarketEvent> parse_csv(const fs::path& file) {
+    std::vector<MarketEvent> events;
+    std::ifstream csv_file(file);
+    
+    if (!csv_file.is_open()) {
+        spdlog::warn("📄 Cannot open CSV: {}", file.string());
+        return events;
+    }
+    
+    std::string line;
+    bool first_line = true;
+    
+    while (std::getline(csv_file, line)) {
+        if (first_line) {
+            first_line = false;
+            // Проверяем заголовок (упрощенно)
+            if (line.find("receive_ts") == std::string::npos) {
+                spdlog::error("❌ Invalid CSV header in {}: {}", file.filename().string(), line.substr(0, 50));
+                return {}; // Файл целиком исключаем (ТЗ)
+            }
+            continue;
+        }
+        
+        // Парсим строку: receive_ts;price;...
+        size_t semicolon1 = line.find(';');
+        size_t semicolon2 = line.find(';', semicolon1 + 1);
+        
+        if (semicolon1 == std::string::npos || semicolon2 == std::string::npos) {
+            continue; // Некорректная строка
+        }
+        
+        try {
+            uint64_t ts = std::stoull(line.substr(0, semicolon1));
+            double price = std::stod(line.substr(semicolon1 + 1, semicolon2 - semicolon1 - 1));
+            events.emplace_back(MarketEvent{ts, price});
+        } catch (...) {
+            // Игнорируем некорректные числа
+        }
+    }
+    
+    spdlog::debug("📊 Parsed {} events from {}", events.size(), file.filename().string());
+    return events;
+}
+
+std::vector<MarketEvent> read_csv_files(const fs::path& input_dir, const std::vector<std::string>& filename_mask) {
+    std::vector<MarketEvent> all_events;
+    
+    if (!fs::exists(input_dir)) {
+        spdlog::warn("📁 Input dir not found: {}", input_dir.string());
+        return all_events;
+    }
+    
+    // 1. Собираем CSV файлы по маске (ТЗ)
+    std::vector<fs::path> csv_files;
+    for (const auto& entry : fs::recursive_directory_iterator(input_dir)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".csv") {
+            std::string filename = entry.path().filename().string();
+            bool matches_mask = filename_mask.empty();
+            
+            // Проверяем filename_mask (поиск подстроки, ТЗ)
+            for (const auto& mask : filename_mask) {
+                if (filename.find(mask) != std::string::npos) {
+                    matches_mask = true;
+                    break;
                 }
             }
-        }
-        
-        std::stable_sort(records_.begin(), records_.end(), 
-            [](const market_record_t& a, const market_record_t& b) {
-                return a.receive_ts < b.receive_ts;
-            });
             
-        spdlog::info("📊 Read {} records matching mask [{}]", 
-                    records_.size(), 
-                    filename_mask_.empty() ? "all" : fmt::to_string(filename_mask_));
-        return records_;
+            if (matches_mask) {
+                csv_files.push_back(entry.path());
+            }
+        }
     }
+    
+    // 2. Лексикографическая сортировка файлов (ТЗ)
+    std::sort(csv_files.begin(), csv_files.end());
+    
+    spdlog::info("🔍 Found {} CSV files matching mask", csv_files.size());
+    
+    // 3. Читаем файлы в лексикографическом порядке
+    for (const auto& file : csv_files) {
+        auto events = parse_csv(file);
+        if (!events.empty()) {
+            all_events.insert(all_events.end(), events.begin(), events.end());
+        }
+    }
+    
+    return all_events;
 }
+
+} // namespace csv_median

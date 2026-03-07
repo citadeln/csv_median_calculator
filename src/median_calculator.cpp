@@ -1,17 +1,29 @@
 #include "median_calculator.hpp"
-#include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace csv_median {
-    void calculator::add_price(double price_) {
-        prices_.push_back(price_);
-    }
 
-    std::optional<double> calculator::median() {
-        if (prices_.empty()) return std::nullopt;
-        
-        auto sorted_ = prices_;
-        std::nth_element(sorted_.begin(), sorted_.begin() + sorted_.size() / 2, sorted_.end());
-        return sorted_[sorted_.size() / 2];
+void MedianCalculator::add_price(double price) {
+    if (lower_half_.empty() || price <= *lower_half_.rbegin()) {
+        lower_half_.insert(price);
+    } else {
+        upper_half_.insert(price);
     }
+    rebalance();
 }
+
+std::optional<double> MedianCalculator::median() {
+    if (lower_half_.empty()) return std::nullopt;
+
+    double current_median = (lower_half_.size() == upper_half_.size())
+        ? (*lower_half_.rbegin() + *upper_half_.begin()) / 2.0
+        : *lower_half_.rbegin();
+
+    // ТЗ: изменение с точностью 8 знаков
+    if (std::fabs(current_median - last_median_) >= 1e-8) {
+        last_median_ = current_median;
+        return current_median;
+    }
+    return std::nullopt;
+}
+
+} // namespace csv_median

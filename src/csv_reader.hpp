@@ -5,7 +5,9 @@
 #include <string>
 
 namespace csv_median {
-    std::vector<market_record_t> read_csv_files(
-        const std::filesystem::path& input_dir_,
-        const std::vector<std::string>& filename_mask_);
-}
+namespace fs = std::filesystem;
+
+std::vector<MarketEvent> parse_csv(const fs::path& file);
+std::vector<MarketEvent> read_csv_files(const fs::path& input_dir, const std::vector<std::string>& filename_mask);
+
+} // namespace csv_median

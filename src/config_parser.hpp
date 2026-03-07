@@ -4,11 +4,14 @@
 #include <string>
 
 namespace csv_median {
-    struct config_t {
-        std::filesystem::path input_dir_;
-        std::filesystem::path output_dir_;
-        std::vector<std::string> filename_mask_;
-    };
+namespace fs = std::filesystem;
 
-    config_t parse_config(const std::filesystem::path& config_path_);
-}
+struct Config {
+    fs::path input_dir;
+    fs::path output_dir;
+    std::vector<std::string> filename_mask;
+};
+
+Config parse_config(const fs::path& path);
+
+} // namespace csv_median
