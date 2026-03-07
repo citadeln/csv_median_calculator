@@ -37,10 +37,9 @@ add_executable(csv_median_calculator
     src/market_record.hpp
 )
 
-# ✅ КРИТИЧНО: toml++ single_include путь!
 target_include_directories(csv_median_calculator PRIVATE 
     src
-    ${tomlplusplus_SOURCE_DIR}/single_include  # ← ЭТО РЕШАЕТ toml.hpp!
+    ${tomlplusplus_SOURCE_DIR}/include 
 )
 
 target_link_libraries(csv_median_calculator PRIVATE
@@ -58,4 +57,4 @@ set_target_properties(csv_median_calculator PROPERTIES
 )
 
 message(STATUS "🚀 csv_median_calculator C++23 configured!")
-message(STATUS "📁 toml++ path: ${tomlplusplus_SOURCE_DIR}/single_include")
+message(STATUS "📁 toml++ path: ${tomlplusplus_SOURCE_DIR}/include")
