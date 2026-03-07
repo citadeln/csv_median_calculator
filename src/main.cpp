@@ -1,66 +1,99 @@
+#include <iostream>
+#include <boost/program_options.hpp>
+#include <spdlog/spdlog.h>
+#include <filesystem>
+#include <algorithm>
 #include "config_parser.hpp"
 #include "csv_reader.hpp"
 #include "median_calculator.hpp"
-#include <spdlog/spdlog.h>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <boost/program_options.hpp>
 
-namespace fs = std::filesystem;
 namespace po = boost::program_options;
+namespace fs = std::filesystem;
 
-int main(int argc_, char* argv_[]) {
+int main(int argc, char* argv[]) {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-    spdlog::info("🚀 csv_median_calculator v2.0 C++23");
 
     try {
-        // ТЗ: ./app --config config.toml
         po::options_description desc("Options");
+        po::positional_options_description p;
+        fs::path config_path;
+
         desc.add_options()
-            ("config,c", po::value<std::string>(), "config.toml path")
-            ("help,h", "show help");
+            ("config,c", po::value<fs::path>(&config_path)->value_name("PATH"), "Path to config.toml")
+            ("cfg", po::value<fs::path>(&config_path)->value_name("PATH"), "Path to config.toml (alias)");
 
         po::variables_map vm;
-        po::store(po::parse_command_line(argc_, argv_, desc), vm);
+        po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
         po::notify(vm);
 
-        if (vm.count("help")) {
-            std::cout << desc << std::endl;
+        if (!vm.count("config") && !vm.count("cfg")) {
+            config_path = fs::path(argv[0]).parent_path() / "config.toml";
+        }
+
+        spdlog::info("Запуск csv_median_calculator v1.0.0");
+
+        auto cfg = parse_config(config_path);
+
+        // Scan files
+        std::vector<MarketRecord> all_records;
+        std::vector<fs::path> processed_files;
+        for (const auto& entry : fs::directory_iterator(cfg.input_dir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".csv") {
+                const auto& fname = entry.path().filename().string();
+                bool matches = cfg.filename_masks.empty();
+                for (const auto& mask : cfg.filename_masks) {
+                    if (fname.find(mask) != std::string::npos) {
+                        matches = true;
+                        break;
+                    }
+                }
+                if (matches) {
+                    auto records = read_csv_file(entry.path());
+                    if (!records.empty()) {
+                        all_records.insert(all_records.end(), std::make_move_iterator(records.begin()), 
+                                         std::make_move_iterator(records.end()));
+                        processed_files.push_back(entry.path());
+                    }
+                }
+            }
+        }
+
+        spdlog::info("Найдено {} файлов", processed_files.size());
+        for (const auto& f : processed_files) {
+            spdlog::info("  - {}", f.filename().string());
+        }
+
+        if (all_records.empty()) {
+            spdlog::warn("No valid data found");
             return 0;
         }
 
-        fs::path config_path_ = vm["config"].as<std::string>();
-        auto config_ = csv_median::parse_config(config_path_);
-        
-        // ТЗ: output_dir или ./output
-        if (config_.output_dir_.empty()) {
-            config_.output_dir_ = "./output";
-        }
-        fs::create_directories(config_.output_dir_);
+        std::stable_sort(all_records.begin(), all_records.end());
 
-        auto events_ = csv_median::read_csv_files(config_.input_dir_, config_.filename_mask_);
-        
-        csv_median::calculator calc_;
-        for (const auto& event_ : events_) {
-            calc_.add_price(event_.price);
-        }
+        spdlog::info("Всего записей: {}", all_records.size());
 
-        // ТЗ: median_result.csv + 8 decimals + semicolon
-        auto output_path_ = config_.output_dir_ / "median_result.csv";
-        std::ofstream out_(output_path_);
-        out_ << "receive_ts;price_median\n";
-        out_.precision(8);
-        out_.setf(std::ios::fixed);
-        
-        if (auto median_ = calc_.median()) {
-            out_ << events_.back().receive_ts << ";" << *median_ << "\n";
-            spdlog::info("💾 {}: {:.8f}", output_path_.string(), *median_);
+        // Calculate median incrementally
+        RunningMedian median;
+        fs::path out_path = cfg.output_dir / "median_result.csv";
+        std::ofstream out(out_path);
+        out << "receive_ts;price_median\n";
+
+        size_t changes = 0;
+        for (const auto& rec : all_records) {
+            median.add(rec.price);
+            if (median.median_changed(rec.receive_ts, out)) {
+                ++changes;
+            }
         }
 
-    } catch (const std::exception& ex_) {
-        spdlog::error("💥 {}", ex_.what());
+        spdlog::info("Изменений медианы: {}", changes);
+        spdlog::info("Результат: {}", out_path.string());
+        spdlog::info("Завершение работы");
+
+    } catch (const std::exception& e) {
+        spdlog::error("Ошибка: {}", e.what());
         return 1;
     }
+
     return 0;
 }
