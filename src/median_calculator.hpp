@@ -1,61 +1,56 @@
+/**
+ * \file median_calculator.hpp
+ * \author Anastasiya Dorohina
+ * \brief Инкрементальная медиана O(log N) через 2 кучи
+ * \date 2026-03-08
+ * \version 2.0
+ */
+
 #pragma once
-#include <queue>
-#include <vector>
-#include <iomanip>
-#include <sstream>
-#include "csv_reader.hpp"
+#include <set>
+#include <optional>
+#include <cmath>
 
-class RunningMedian {
+namespace csv_median {
+
+/**
+ * \class MedianCalculator
+ * \brief Вычисляет медиану в O(log N) на потоке цен
+ * 
+ * Алгоритм двух куч (ТЗ):
+ *  - lower_half_: max-heap (нижняя половина ≤ медиана)
+ *  - upper_half_: min-heap (верхняя половина ≥ медиана)  
+ *  - rebalance(): |lower| = |upper| или |lower| = |upper| + 1
+ *  - median(): среднее верхнего(lower) и нижнего(upper) при чётности
+ */
+class MedianCalculator {
 private:
-    using MaxHeap = std::priority_queue<double>;  // max-heap for lower half
-    using MinHeap = std::priority_queue<double, std::vector<double>, std::greater<double>>;  // min-heap for upper half
+    std::multiset<double> lower_half_;
+    std::multiset<double> upper_half_;
+    double last_median_ = 0.0;
 
-    MaxHeap lower_;
-    MinHeap upper_;
-    double prev_median_ = 0.0;
-    std::string prev_median_str_;
+    void rebalance() {
+        if (lower_half_.size() > upper_half_.size() + 1) {
+            upper_half_.insert(*lower_half_.rbegin());
+            lower_half_.erase(std::prev(lower_half_.end()));
+        } else if (upper_half_.size() > lower_half_.size()) {
+            lower_half_.insert(*upper_half_.begin());
+            upper_half_.erase(upper_half_.begin());
+        }
+    }
 
 public:
-    void add(double price) {
-        // Add to lower heap, rebalance
-        lower_.push(price);
-        if (!upper_.empty() && lower_.top() > upper_.top()) {
-            std::swap(lower_.top(), upper_.top());
-            std::pop_heap(lower_); lower_.pop();
-            std::push_heap(lower_);
-            std::pop_heap(upper_); upper_.pop();
-            std::push_heap(upper_);
-        }
-        // Balance sizes
-        if (lower_.size() > upper_.size() + 1) {
-            upper_.push(lower_.top());
-            std::pop_heap(lower_); lower_.pop();
-            std::push_heap(upper_);
-        } else if (upper_.size() > lower_.size()) {
-            lower_.push(upper_.top());
-            std::pop_heap(upper_); upper_.pop();
-            std::push_heap(lower_);
-        }
-    }
+    /**
+     * \brief Добавляет цену в поток
+     * \param price Новая цена события
+     */
+    void add_price(double price);
 
-    bool median_changed(uint64_t ts, std::ostream& out) {
-        double median;
-        if (lower_.size() == upper_.size()) {
-            median = (lower_.top() + upper_.top()) / 2.0;
-        } else {
-            median = lower_.top();
-        }
-
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(8) << median;
-        std::string curr_str = oss.str();
-
-        if (curr_str != prev_median_str_) {
-            out << ts << ";" << curr_str << "\n";
-            prev_median_ = median;
-            prev_median_str_ = curr_str;
-            return true;
-        }
-        return false;
-    }
+    /**
+     * \brief Возвращает медиану если изменилась (ТЗ: 8 decimals)
+     * \return median или nullopt если без изменений
+     */    
+    std::optional<double> median();
 };
+
+} // namespace csv_median
