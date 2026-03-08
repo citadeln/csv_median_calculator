@@ -40,7 +40,7 @@ namespace po = boost::program_options;
 int main(int argc, char* argv[]) {
     /// Настройка логирования
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-    spdlog::info("🚀 csv_median_calculator v2.0 C++23");
+    spdlog::info("csv_median_calculator v2.0 C++23");
 
     try {
         /// 1. Парсинг CLI аргументов
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
             fs::path(vm["config"].as<std::string>()) : "config.toml";
             
         auto config = csv_median::parse_config(config_path);
-        spdlog::info("📁 Config: input={} mask=[{}]", 
+        spdlog::info("Config: input={} mask=[{}]", 
                      config.input_dir.string(),
                      config.filename_mask.empty() ? "all" :
                      (config.filename_mask.size() > 1 ? 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 
         /// 3. Чтение CSV файлов
         auto events = csv_median::read_csv_files(config.input_dir, config.filename_mask);
-        spdlog::info("📊 Found {} events", events.size());
+        spdlog::info("Found {} events", events.size());
 
         /// 4. Стабильная сортировка по временной метке
         std::stable_sort(events.begin(), events.end(), 
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
                 return a.receive_ts < b.receive_ts;
             });
         
-        spdlog::info("🔄 Sorted by receive_ts: {} events", events.size());
+        spdlog::info("Sorted by receive_ts: {} events", events.size());
 
         /// 5. Вычисление медианы цен
         csv_median::MedianCalculator calc;
@@ -107,14 +107,14 @@ int main(int argc, char* argv[]) {
         }
         out.close();
 
-        spdlog::info("💾 Saved {} median changes to {}", change_count, output_path.string());
+        spdlog::info("Saved {} median changes to {}", change_count, output_path.string());
         spdlog::info("✅ Done!");
 
     } catch (const std::exception& ex) {
-        spdlog::error("💥 Exception: {}", ex.what());
+        spdlog::error("Exception: {}", ex.what());
         return 1;
     } catch (...) {
-        spdlog::critical("💀 Unknown error");
+        spdlog::critical("❌ Unknown error");
         return 255;
     }
     
