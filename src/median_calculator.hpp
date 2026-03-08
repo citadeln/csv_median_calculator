@@ -1,3 +1,11 @@
+/**
+ * \file median_calculator.hpp
+ * \author Anastasiya Dorohina
+ * \brief Инкрементальная медиана O(log N) через 2 кучи
+ * \date 2026-03-08
+ * \version 2.0
+ */
+
 #pragma once
 #include <set>
 #include <optional>
@@ -5,10 +13,20 @@
 
 namespace csv_median {
 
+/**
+ * \class MedianCalculator
+ * \brief Вычисляет медиану в O(log N) на потоке цен
+ * 
+ * Алгоритм двух куч (ТЗ):
+ *  - lower_half_: max-heap (нижняя половина ≤ медиана)
+ *  - upper_half_: min-heap (верхняя половина ≥ медиана)  
+ *  - rebalance(): |lower| = |upper| или |lower| = |upper| + 1
+ *  - median(): среднее верхнего(lower) и нижнего(upper) при чётности
+ */
 class MedianCalculator {
 private:
-    std::multiset<double> lower_half_;  // max-heap (нижняя половина)
-    std::multiset<double> upper_half_;  // min-heap (верхняя половина)
+    std::multiset<double> lower_half_;
+    std::multiset<double> upper_half_;
     double last_median_ = 0.0;
 
     void rebalance() {
@@ -22,7 +40,16 @@ private:
     }
 
 public:
+    /**
+     * \brief Добавляет цену в поток
+     * \param price Новая цена события
+     */
     void add_price(double price);
+
+    /**
+     * \brief Возвращает медиану если изменилась (ТЗ: 8 decimals)
+     * \return median или nullopt если без изменений
+     */    
     std::optional<double> median();
 };
 

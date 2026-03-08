@@ -1,3 +1,10 @@
+#/**
+# * \file CMakeLists.txt
+# * \author Anastasiya Dorohina
+# * \brief csv_median_calculator C++23 сборка
+# * \date 2026-03-08 v2.0
+# */
+
 cmake_minimum_required(VERSION 3.23)
 project(csv_median_calculator LANGUAGES CXX)
 
@@ -8,7 +15,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 include(FetchContent)
 
-# spdlog
+# spdlog v1.14.1 logging
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -16,7 +23,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# toml++ С single_include ФИКСОМ!
+# toml++ v3.4.0 TOML config
 FetchContent_Declare(
     tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
@@ -26,6 +33,7 @@ FetchContent_MakeAvailable(tomlplusplus)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 
+# executable sources
 add_executable(csv_median_calculator
     src/main.cpp
     src/config_parser.cpp
@@ -56,5 +64,5 @@ set_target_properties(csv_median_calculator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-message(STATUS "🚀 csv_median_calculator C++23 configured!")
-message(STATUS "📁 toml++ path: ${tomlplusplus_SOURCE_DIR}/include")
+message(STATUS "csv_median_calculator C++23 configured!")
+message(STATUS "toml++ path: ${tomlplusplus_SOURCE_DIR}/include")

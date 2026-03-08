@@ -250,4 +250,3 @@ void func(...)
 
 - Использовать C++-стиль: `static_cast<float>(double_value)`
 - Избегать C-стиля
-
