@@ -25,20 +25,5 @@ cp build/compile_commands.json .
 # 4. Параллельная сборка
 # Автоопределение ядер CPU для сборки
 CPU_COUNT=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
-echo "Сборка проекта ($CPU_COUNT ядер)..."
+echo -e "\nСборка проекта ($CPU_COUNT ядер)..."
 cmake --build build/ -j"$CPU_COUNT"
-
-
-# 5. Запуск приложения с конфигурацией
-echo "Запуск csv_median_calculator..."
-./build/csv_median_calculator --config config.toml
-
-# 6. Показываем результат (первые 10 строк)
-echo "Результат median_result.csv:"
-echo "----------------------------------------"
-if [ -f "output/median_result.csv" ]; then
-    head -10 output/median_result.csv
-else
-    echo "median_result.csv не найден!"
-    exit 1
-fi

@@ -1,25 +1,25 @@
 [
 {
   "directory": "/home/monroe/projects/csv_median_calculator/build",
-  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/single_include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/main.cpp.o -c /home/monroe/projects/csv_median_calculator/src/main.cpp",
+  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/main.cpp.o -c /home/monroe/projects/csv_median_calculator/src/main.cpp",
   "file": "/home/monroe/projects/csv_median_calculator/src/main.cpp",
   "output": "CMakeFiles/csv_median_calculator.dir/src/main.cpp.o"
 },
 {
   "directory": "/home/monroe/projects/csv_median_calculator/build",
-  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/single_include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/config_parser.cpp.o -c /home/monroe/projects/csv_median_calculator/src/config_parser.cpp",
+  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/config_parser.cpp.o -c /home/monroe/projects/csv_median_calculator/src/config_parser.cpp",
   "file": "/home/monroe/projects/csv_median_calculator/src/config_parser.cpp",
   "output": "CMakeFiles/csv_median_calculator.dir/src/config_parser.cpp.o"
 },
 {
   "directory": "/home/monroe/projects/csv_median_calculator/build",
-  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/single_include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/csv_reader.cpp.o -c /home/monroe/projects/csv_median_calculator/src/csv_reader.cpp",
+  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/csv_reader.cpp.o -c /home/monroe/projects/csv_median_calculator/src/csv_reader.cpp",
   "file": "/home/monroe/projects/csv_median_calculator/src/csv_reader.cpp",
   "output": "CMakeFiles/csv_median_calculator.dir/src/csv_reader.cpp.o"
 },
 {
   "directory": "/home/monroe/projects/csv_median_calculator/build",
-  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/single_include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/median_calculator.cpp.o -c /home/monroe/projects/csv_median_calculator/src/median_calculator.cpp",
+  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -I/home/monroe/projects/csv_median_calculator/src -I/home/monroe/projects/csv_median_calculator/build/_deps/tomlplusplus-src/include -I/home/monroe/projects/csv_median_calculator/build/_deps/spdlog-src/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -o CMakeFiles/csv_median_calculator.dir/src/median_calculator.cpp.o -c /home/monroe/projects/csv_median_calculator/src/median_calculator.cpp",
   "file": "/home/monroe/projects/csv_median_calculator/src/median_calculator.cpp",
   "output": "CMakeFiles/csv_median_calculator.dir/src/median_calculator.cpp.o"
 },
