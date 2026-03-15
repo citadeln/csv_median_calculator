@@ -34,16 +34,16 @@ bash run.sh
 ## Ручная сборка и запуск:
 ```bash
 mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . -j$(nproc)
 
 # Запуск по умолчанию
-./build/csv_median_calculator
+./csv_median_calculator
 
 # Запуск с явно указанным конфигом
-./build/csv_median_calculator -config /path/to/config.toml
+./csv_median_calculator -config /path/to/config.toml
 # или
-./build/csv_median_calculator -cfg /path/to/config.toml
+./csv_median_calculator -cfg /path/to/config.toml
 ```
 
 ## Документация
