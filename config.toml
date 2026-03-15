@@ -1,6 +1,5 @@
 [main]
     input = "./examples/input"
-    output = "./examples/output" 
+    output = "./examples/output"
     filename_mask = ["level", "trade"]
-    clear_output_directory = false
-    metrics = ["median", "mean", "std", "p50", "p90", "p95", "p99"]
+    metrics = ["median", "mean", "std", "p90", "p95", "p99"]

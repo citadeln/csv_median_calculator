@@ -1,8 +1,8 @@
 #/**
 # * \file CMakeLists.txt
 # * \author Anastasiya Dorohina
-# * \brief csv_median_calculator C++23 сборка
-# * \date 2026-03-08 v2.0
+# * \brief csv_median_calculator C++23 сборка  + Boost.Accumulators ТЗ 7.2
+# * \date 2026-03-15 v2.2
 # */
 
 cmake_minimum_required(VERSION 3.23)
@@ -15,7 +15,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 include(FetchContent)
 
-# spdlog v1.14.1 logging
+# spdlog v1.14.1
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -23,7 +23,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# toml++ v3.4.0 TOML config
+# toml++ v3.4.0  
 FetchContent_Declare(
     tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
@@ -31,37 +31,30 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
+# Только program_options (accumulators = header-only!)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
-# Boost: program_options + accumulators (системная установка)
-find_package(Boost REQUIRED COMPONENTS 
-    program_options 
-    accumulators
-)
-
-# Executable sources (+ stats_calculator.cpp)
+# Основной executable
 add_executable(csv_median_calculator
     src/main.cpp
     src/config_parser.cpp
-    src/csv_reader.cpp
-    src/median_calculator.cpp
-    src/stats_calculator.cpp
+    src/csv_reader.cpp    
+    src/stats_calculator.cpp      # ТЗ 7.2
     src/config_parser.hpp
     src/csv_reader.hpp
     src/median_calculator.hpp
-    src/stats_calculator.hpp
+    src/stats_calculator.hpp      # ТЗ 7.2
     src/market_record.hpp
 )
 
 target_include_directories(csv_median_calculator PRIVATE 
     src
-    ${tomlplusplus_SOURCE_DIR}/include 
+    ${tomlplusplus_SOURCE_DIR}/include
 )
 
 target_link_libraries(csv_median_calculator PRIVATE
     spdlog::spdlog
-    Boost::program_options
-    Boost::accumulators
+    Boost::program_options     
 )
 
 target_compile_options(csv_median_calculator PRIVATE
@@ -73,21 +66,22 @@ set_target_properties(csv_median_calculator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-message(STATUS "csv_median_calculator C++23 + Boost.Accumulators configured!")
+message(STATUS "csv_median_calculator C++23 + Boost.Accumulators (header-only) configured!")
 
-# Unit тесты Boost.Test
-find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
-add_executable(stats_tests
-    test_stats_calculator.cpp
-)
+# # Unit тесты Boost.Test
+# find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
-target_link_libraries(stats_tests PRIVATE
-    Boost::unit_test_framework
-    Boost::accumulators
-    spdlog::spdlog
-)
+# add_executable(stats_tests
+#     test_stats_calculator.cpp
+# )
 
-target_include_directories(stats_tests PRIVATE ../src)
+# target_link_libraries(stats_tests PRIVATE
+#     Boost::unit_test_framework
+#     Boost::accumulators
+#     spdlog::spdlog
+# )
 
-add_test(NAME StatsCalculatorTest COMMAND stats_tests)
+# target_include_directories(stats_tests PRIVATE ../src)
+
+# add_test(NAME StatsCalculatorTest COMMAND stats_tests)

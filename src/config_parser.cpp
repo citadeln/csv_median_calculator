@@ -65,9 +65,11 @@ Config parse_config(const fs::path& path) {
         }
     }
     
-    spdlog::info("Metrics: [{}]", 
-        config.metrics.empty() ? "none" : 
-        fmt::join(config.metrics, ", "));
+    spdlog::info("Metrics: {}", 
+    config.metrics.empty() ? "none" : 
+    (config.metrics.size() == 1 ? config.metrics[0] : 
+     config.metrics[0] + ", " + config.metrics[1]));
+
 }
 
             // Логирование результата парсинга
