@@ -22,7 +22,7 @@
 ## Требования
 
 - ОС: Linux, macOS (C++23)
-- Зависимости: CMake 3.23+, Boost 1.83+, git, make
+- Зависимости: CMake 3.23+, Boost 1.83+, git, make, libboost-test-dev
 - Библиотеки:  toml++, spdlog, Boost.ProgramOptions, Boost.Accumulators (интеграция через FetchContent)
 
 ## Быстрый старт (1 мин)
@@ -212,18 +212,24 @@ csv_median_calculator/
 ## Запуск тестов
 
 ```bash
-# Сборка тестов
-mkdir -p build/tests && cd build/tests
-cmake ../../tests -DCMAKE_BUILD_TYPE=Debug
+# Сборка тестов (1 мин)
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Debug
 cmake --build . -j$(nproc)
 
 # Запуск
 ./stats_tests --report_level=detailed
 
 # Ожидаемый вывод:
-# Running 6 test cases...
-# StatsCalculatorTest (6)
-#   Test_Metrics_Median_Mean_Std *** PASSED ***
-#   Test_Percentiles_P50_P90_P95_P99 *** PASSED ***
+# Test module "StatsCalculatorTests" has passed with:
+#   6 test cases out of 6 passed
+#   35 assertions out of 35 passed
+
+#   Test suite "StatsCalculatorTests" has passed with:
+#     6 test cases out of 6 passed
+#     35 assertions out of 35 passed
+
+#     Test case "StatsCalculatorTests/Test_Mean_And_Std" has passed with:
+#       5 assertions out of 5 passed
 # ...
 ```

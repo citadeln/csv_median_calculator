@@ -31,8 +31,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-# Только program_options (accumulators = header-only!)
-find_package(Boost REQUIRED COMPONENTS program_options)
+# program_options + unit_test_framework в одном вызове
+find_package(Boost REQUIRED COMPONENTS program_options unit_test_framework)
 
 # Основной executable
 add_executable(csv_median_calculator
@@ -40,11 +40,11 @@ add_executable(csv_median_calculator
     src/config_parser.cpp
     src/csv_reader.cpp    
     src/median_calculator.cpp
-    src/stats_calculator.cpp      # ТЗ 7.2
+    src/stats_calculator.cpp
     src/config_parser.hpp
     src/csv_reader.hpp
     src/median_calculator.hpp
-    src/stats_calculator.hpp      # ТЗ 7.2
+    src/stats_calculator.hpp
     src/market_record.hpp
 )
 
@@ -69,20 +69,23 @@ set_target_properties(csv_median_calculator PROPERTIES
 
 message(STATUS "csv_median_calculator C++23 + Boost.Accumulators (header-only) configured!")
 
+# Unit тесты Boost.Test
+enable_testing()
 
-# # Unit тесты Boost.Test
-# find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+add_executable(stats_tests
+    tests/test_stats_calculator.cpp
+    src/stats_calculator.cpp
+    src/median_calculator.cpp
+)
 
-# add_executable(stats_tests
-#     test_stats_calculator.cpp
-# )
+target_include_directories(stats_tests PRIVATE
+    src
+    ${tomlplusplus_SOURCE_DIR}/include
+)
 
-# target_link_libraries(stats_tests PRIVATE
-#     Boost::unit_test_framework
-#     Boost::accumulators
-#     spdlog::spdlog
-# )
+target_link_libraries(stats_tests PRIVATE
+    Boost::unit_test_framework
+    spdlog::spdlog
+)
 
-# target_include_directories(stats_tests PRIVATE ../src)
-
-# add_test(NAME StatsCalculatorTest COMMAND stats_tests)
+add_test(NAME StatsCalculatorTest COMMAND stats_tests)
