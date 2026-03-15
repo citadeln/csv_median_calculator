@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Запуск приложения с конфигурацией
 echo "Запуск csv_median_calculator..."
 ./build/csv_median_calculator --config config.toml

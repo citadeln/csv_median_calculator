@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Генерирует файл входных данных на заданное количество строк
+
 set -euo pipefail
 
 OUTDIR="./examples/input"
