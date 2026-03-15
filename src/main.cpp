@@ -54,8 +54,7 @@ int main(int argc, char* argv[]) {
         std::ranges::stable_sort(events, {}, &csv_median::MarketEvent::receive_ts);
         spdlog::info("Sorted {} events", events.size());
 
-        // ТЗ 7.2: stats_result.csv
-        auto output_path = config.output_dir / "stats_result.csv";
+        auto output_path = config.output_dir / "median_result.csv";
         std::ofstream out(output_path);
         if (!out) {
             spdlog::error("Cannot create: {}", output_path.string());

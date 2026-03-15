@@ -18,13 +18,13 @@ Config parse_config(const fs::path& path) {
     Config config;
 
     // Инициализация ТЗ дефолтами
-    config.input_dir = "./data";
+    config.input_dir    = "./data";
     config.filename_mask = {"level", "trade"};
-    config.output_dir = "./output";
+    config.output_dir   = "./output";
 
-    // Файл не существует — ТЗ дефолты
+    // Файл не существует -- ТЗ дефолты
     if (!fs::exists(path)) {
-        spdlog::warn("⚠️ Config {} not found, using defaults", path.string());
+        spdlog::warn("Config {} not found, using defaults", path.string());
         fs::create_directories(config.output_dir);
         return config;
     }
@@ -35,20 +35,22 @@ Config parse_config(const fs::path& path) {
 
         // Доступ к секции [main]
         if (auto main_table = data["main"]; main_table && main_table.is_table()) {
-            // Преобразование [main].input: string → fs::path
-            if (auto input_val = main_table["input"]; input_val && input_val.is_string()) {
+            // Преобразование [main].input: string -> fs::path
+            if (auto input_val = main_table["input"];
+                input_val && input_val.is_string()) {
                 config.input_dir = fs::path(input_val.as_string()->get());
             }
 
-            // Преобразование [main].output: string → fs::path
-            if (auto output_val = main_table["output"]; output_val && output_val.is_string()) {
+            // Преобразование [main].output: string -> fs::path
+            if (auto output_val = main_table["output"];
+                output_val && output_val.is_string()) {
                 config.output_dir = fs::path(output_val.as_string()->get());
             }
 
-            // [main].filename_mask: array → vector<string>
-            if (auto mask_array = main_table["filename_mask"]; mask_array && mask_array.is_array()) {
+            // [main].filename_mask: array -> vector<string>
+            if (auto mask_array = main_table["filename_mask"];
+                mask_array && mask_array.is_array()) {
                 config.filename_mask.clear();
-                // Итерация по *as_array() (TOML++ v3.4.0)
                 for (const auto& item : *mask_array.as_array()) {
                     if (item.is_string()) {
                         config.filename_mask.push_back(item.as_string()->get());
@@ -56,33 +58,34 @@ Config parse_config(const fs::path& path) {
                 }
             }
 
-            // [main].metrics: array → vector<string> (ТЗ 7.2)
-            if (auto metrics_array = main_table["metrics"]; metrics_array && metrics_array.is_array()) {
+            // [main].metrics: array -> vector<string>
+            if (auto metrics_array = main_table["metrics"];
+                metrics_array && metrics_array.is_array()) {
                 config.metrics.clear();
                 for (const auto& item : *metrics_array.as_array()) {
                     if (item.is_string()) {
                         config.metrics.push_back(item.as_string()->get());
-        }
-    }
-    
-    spdlog::info("Metrics: {}", 
-    config.metrics.empty() ? "none" : 
-    (config.metrics.size() == 1 ? config.metrics[0] : 
-     config.metrics[0] + ", " + config.metrics[1]));
-
-}
+                    }
+                }
+            }
 
             // Логирование результата парсинга
-            spdlog::info("✅ TOML parsed: input='{}' mask=[{}]",
-                        config.input_dir.string(),
-                        config.filename_mask.empty() ? "none" :
-                        (config.filename_mask.size() > 1 ?
-                        config.filename_mask[0] + ", " + config.filename_mask[1] :
-                        config.filename_mask[0]));
+            const auto mask_str = config.filename_mask.empty() ? "none"
+                : (config.filename_mask.size() > 1
+                    ? config.filename_mask[0] + ", " + config.filename_mask[1]
+                    : config.filename_mask[0]);
+
+            const auto metrics_str = config.metrics.empty() ? "none"
+                : (config.metrics.size() > 1
+                    ? config.metrics[0] + ", " + config.metrics[1]
+                    : config.metrics[0]);
+
+            spdlog::info("TOML parsed: input='{}' mask=[{}] metrics=[{}]",
+                        config.input_dir.string(), mask_str, metrics_str);
         }
     } catch (const std::exception& e) {
-        // Любая ошибка TOML — ТЗ дефолты
-        spdlog::warn("❌ TOML error '{}', using defaults", e.what());
+        // Любая ошибка TOML -- ТЗ дефолты
+        spdlog::warn("TOML error '{}', using defaults", e.what());
     }
 
     // Гарантируем создание output_dir
