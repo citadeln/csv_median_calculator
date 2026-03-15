@@ -1,40 +1,40 @@
 /**
  * \file csv_reader.cpp
  * \author Anastasiya Dorohina
- * \brief CSV парсер + фильтр файлов по маске
- * \date 2026-03-08
- * \version 2.0
+ * \brief CSV парсер + рекурсивный поиск файлов по маске (ТЗ 3.1)
+ * \date 2026-03-15
+ * \version 2.2
  */
 
 #include "csv_reader.hpp"
 #include <spdlog/spdlog.h>
-#include <ranges>
 #include <fstream>
 #include <algorithm>
+#include <ranges>
 
 namespace csv_median {
 namespace fs = std::filesystem;
 
 /**
- * \brief Парсит CSV файл в MarketEvent события
+ * \brief Парсит CSV файл в MarketEvent структуру
  * 
- * **Алгоритм парсинга (ТЗ):**
- * - Чтение строк через std::getline()
- * - Проверка заголовка: обязателен "receive_ts" (ТЗ: без него файл исключается)
- * - Поиск позиций ';' для извлечения receive_ts (1-й столбец) и price (3-й столбец)
- * - Поддержка level.csv (6 колонок) и trade.csv (5 колонок) через одинаковый парсинг первых 3 полей
- * - Игнорирование некорректных строк (try-catch для std::stoull/stod)
- * - **Весь файл исключается при неверном заголовке** (ТЗ: источник данных невалиден)
+ * **Алгоритм парсинга (ТЗ 3.1, 4.4):**
+ * 1. Открывает файл, возвращает {} при ошибке открытия
+ * 2. **Валидация заголовка:** ищет "receive_ts" в первой строке
+ *    - Отсутствует → **весь файл исключается** с ошибкой (ТЗ)
+ * 3. Парсит каждую строку: `receive_ts;exchange_ts;price;...`
+ * 4. Извлекает **1-ю колонку** (receive_ts → uint64_t) и **3-ю колонку** (price → double)
+ * 5. **try-catch** игнорирует некорректные строки (robustness ТЗ)
  * 
- * \param file Путь к CSV файлу
- * \return Список MarketEvent или пустой вектор при ошибке/невалидном формате
- * \warning Некорректный header → немедленный возврат {} (ТЗ)
+ * \param[in] file Путь к CSV файлу (.csv)
+ * \return Вектор MarketEvent или {} при неверном заголовке
+ * \warning Файл с неверным заголовком **полностью исключается**
+ * \Complexity O(N) где N — количество строк в файле
  */
 std::vector<MarketEvent> parse_csv(const fs::path& file) {
     std::vector<MarketEvent> events;
     std::ifstream csv_file(file);
     
-    // Файл не открылся → ТЗ: пустой результат без crash
     if (!csv_file.is_open()) {
         spdlog::warn("Cannot open CSV: {}", file.string());
         return events;
@@ -44,7 +44,6 @@ std::vector<MarketEvent> parse_csv(const fs::path& file) {
     bool first_line = true;
     
     while (std::getline(csv_file, line)) {
-        // Обработка заголовка: ТЗ требует "receive_ts"
         if (first_line) {
             first_line = false;
             if (line.find("receive_ts") == std::string::npos) {
@@ -56,25 +55,29 @@ std::vector<MarketEvent> parse_csv(const fs::path& file) {
             continue;
         }
         
-        // Поиск разделителей для извлечения receive_ts и price
-        size_t semicolon1 = line.find(';');           // receive_ts конец
-        size_t semicolon2 = line.find(';', semicolon1 + 1);  // exchange_ts конец  
-        size_t semicolon3 = line.find(';', semicolon2 + 1);  // price конец
+        // Поиск разделителей ';' для извлечения колонок 1 и 3
+        std::string_view line_view{line};
+        auto pos1 = line_view.find(';');           // receive_ts конец
+        auto pos2 = line_view.find(';', pos1 + 1); // exchange_ts конец
+        auto pos3 = line_view.find(';', pos2 + 1); // price конец
         
-        // Минимум 3 колонки для валидности (ТЗ robustness)
-        if (semicolon1 == std::string::npos || 
-            semicolon2 == std::string::npos || 
-            semicolon3 == std::string::npos) {
+        if (pos1 == std::string_view::npos || 
+            pos2 == std::string_view::npos || 
+            pos3 == std::string_view::npos) {
             continue;
         }
         
         try {
-            // Парсинг чисел с обработкой ошибок
-            uint64_t ts = std::stoull(line.substr(0, semicolon1));
-            double price = std::stod(line.substr(semicolon2 + 1, semicolon3 - semicolon2 - 1));
+            // Zero-copy парсинг: string_view.data() → stoull/stod
+            std::string_view ts_view = line_view.substr(0, pos1);
+            std::string_view price_view = line_view.substr(pos2 + 1, pos3 - pos2 - 1);
+            
+            uint64_t ts = std::stoull(ts_view.data(), nullptr, 10);
+            double price = std::stod(price_view.data(), nullptr);
+            
             events.emplace_back(MarketEvent{ts, price});
         } catch (...) {
-            // ТЗ: некорректные строки игнорируются (не crash)
+            // ТЗ 4.4: некорректные строки игнорируются
         }
     }
     
@@ -83,62 +86,83 @@ std::vector<MarketEvent> parse_csv(const fs::path& file) {
 }
 
 /**
- * \brief Сканирует директорию и собирает CSV по filename_mask
+ * \brief Рекурсивно собирает CSV файлы по filename_mask и парсит их
  * 
- * **Полный алгоритм (строго по ТЗ):**
- * 1. recursive_directory_iterator(input_dir) → все файлы рекурсивно
- * 2. Фильтр: только .csv файлы
- * 3. filename_mask: **поиск подстроки** в имени файла (или все CSV при пустой маске)
- * 4. **Лексикографическая сортировка** найденных файлов (std::sort)
- * 5. Последовательный парсинг parse_csv() **в порядке сортировки**
- * 6. Конкатенация всех событий в единый поток
+ * **Полный алгоритм ТЗ 3.1:**
+ * 1. **recursive_directory_iterator** → сканирует input_dir рекурсивно
+ * 2. Фильтрует **только .csv** регулярные файлы
+ * 3. **Фильтрация по маске:** filename_mask = ['level','trade']
+ *    - Пустой список → все CSV файлы
+ *    - Иначе → файл содержит **хотя бы одну** маску как подстроку
+ * 4. **std::ranges::sort** → лексикографическая сортировка файлов
+ * 5. **Последовательный парсинг** parse_csv() **в порядке сортировки**
+ * 6. **make_move_iterator** → zero-copy конкатенация всех событий
  * 
- * **Детерминизм:** stable_sort(events) + лексикографическая сортировка файлов
- * гарантирует воспроизводимый результат при одинаковых данных.
+ * **Детерминизм (ТЗ 3.1):** 
+ * - Лексикографический порядок файлов гарантирует воспроизводимость
+ * - stable_sort(events) в main.cpp сохраняет относительный порядок
  * 
- * \param input_dir Директория поиска (может не существовать → пустой результат)
- * \param filename_mask Список строк-подмасок (пустой = все CSV)
- * \return Все MarketEvent из подходящих файлов в порядке обработки
+ * **Пример:**
+ * ```
+ * input_dir/
+ * ├── level_20240315.csv     → ✓ matches 'level'
+ * ├── trade_20240315.csv     → ✓ matches 'trade'  
+ * ├── other.txt              → ✗ не .csv
+ * └── subdir/other.csv       → ✗ не содержит 'level'/'trade'
+ * ```
+ * 
+ * \param[in] input_dir Директория для рекурсивного поиска CSV
+ * \param[in] filename_mask Список строк-масок (пустой = все CSV)
+ * \return Объединённый поток MarketEvent из всех подходящих файлов
+ * \Complexity O(F log F + ΣN_f) где F — файлы, N_f — строк в файле f
  */
 std::vector<MarketEvent> read_csv_files(const fs::path& input_dir, const std::vector<std::string>& filename_mask) {
     std::vector<MarketEvent> all_events;
     
-    // ТЗ: отсутствующая директория → graceful пустой результат
     if (!fs::exists(input_dir)) {
         spdlog::warn("Input dir not found: {}", input_dir.string());
         return all_events;
     }
     
-    // Сбор CSV файлов по маске (ТЗ: substring search)
+    spdlog::debug("Scanning directory: {}", input_dir.string());
+    
     std::vector<fs::path> csv_files;
     for (const auto& entry : fs::recursive_directory_iterator(input_dir)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".csv") {
-            std::string filename = entry.path().filename().string();
-            bool matches_mask = filename_mask.empty(); // Пустая маска = все CSV
-            
-            // Проверка любой маски (ТЗ: OR логика)
-            for (const auto& mask : filename_mask) {
-                if (filename.find(mask) != std::string::npos) {
-                    matches_mask = true;
-                    break;
-                }
+        // Фильтр: только CSV регулярные файлы
+        if (!entry.is_regular_file() || entry.path().extension() != ".csv") 
+            continue;
+        
+        // Извлечение имени файла для фильтрации по маске
+        std::string filename = entry.path().filename().string();
+        spdlog::debug("Found CSV: {}", filename);
+        
+        // Проверка соответствия filename_mask
+        bool matches_mask = filename_mask.empty();
+        for (const std::string& mask : filename_mask) {
+            if (filename.find(mask) != std::string::npos) {
+                matches_mask = true;
+                spdlog::debug("  → matches mask '{}'", mask);
+                break;
             }
-            
-            if (matches_mask) {
-                csv_files.push_back(entry.path());
-            }
+        }
+        
+        if (matches_mask) {
+            csv_files.push_back(entry.path());
+            spdlog::info("Added CSV file: {}", filename);
         }
     }
     
-    // ТЗ: лексикографическая сортировка файлов перед обработкой
-    std::sort(csv_files.begin(), csv_files.end());
+    // Лексикографическая сортировка файлов (ТЗ 3.1 детерминизм)
+    std::ranges::sort(csv_files);
     spdlog::info("Found {} CSV files matching mask", csv_files.size());
     
-    // Последовательная обработка в **лексикографическом порядке**
-    for (const auto& file : csv_files) {
+    // Последовательная обработка в порядке сортировки + zero-copy
+    for (auto&& file : csv_files) {
         auto events = parse_csv(file);
         if (!events.empty()) {
-            all_events.insert(all_events.end(), events.begin(), events.end());
+            all_events.insert(all_events.end(),
+                            std::make_move_iterator(events.begin()),
+                            std::make_move_iterator(events.end()));
         }
     }
     

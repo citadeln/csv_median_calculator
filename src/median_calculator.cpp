@@ -1,9 +1,9 @@
 /**
  * \file median_calculator.cpp
  * \author Anastasiya Dorohina
- * \brief O(log N) медиана через две кучи (lower/upper)
- * \date 2026-03-08
- * \version 2.0
+ * \brief Реализация O(log N) медианы **без mutable**
+ * \date 2026-03-15
+ * \version 2.1
  */
 
 #include "median_calculator.hpp"
@@ -11,88 +11,70 @@
 namespace csv_median {
 
 /**
- * \brief Добавляет цену в медианный поток **O(log N)**
+ * \brief Разделение цены по текущей медиане **O(log N)**
  * 
- * **Алгоритм двух куч (ТЗ):**
- * 1. price <= max(lower_half_) → вставка в lower_half_ (max-heap через rbegin)
- * 2. Иначе → вставка в upper_half_ (min-heap через begin)  
- * 3. rebalance() для инварианта: |lower| == |upper| ИЛИ |lower| == |upper| + 1
+ * **Логика двух куч:**
+ * - price ≤ max(lower) → lower_half_.insert()
+ * - Иначе → upper_half_.insert()  
+ * - rebalance() восстанавливает инвариант размеров
  * 
- * **Инварианты после add_price():**
- * - Все элементы lower_half_ <= все элементы upper_half_
- * - Размеры куч сбалансированы
- * 
- * \param price Новое значение цены для добавления в поток
- * \Complexity O(log N) вставка + O(log N) rebalance
+ * \param[in] price Добавляемая цена
  */
 void MedianCalculator::add_price(double price) {
-    // Разделение по медиане: нижняя/верхняя половина
     if (lower_half_.empty() || price <= *lower_half_.rbegin()) {
-        lower_half_.insert(price);  // max-heap: rbegin() = максимум
+        lower_half_.insert(price);  // max-heap: rbegin()
     } else {
-        upper_half_.insert(price);  // min-heap: begin() = минимум
+        upper_half_.insert(price);  // min-heap: begin()
     }
-    rebalance();  // Восстановление баланса размеров
+    rebalance();
 }
 
 /**
- * \brief Балансировка размеров двух куч **O(log N)**
+ * \brief Балансировка инварианта размеров **O(log N)**
  * 
- * **Логика балансировки (строго ТЗ инвариант):**
- * - **Случай 1:** |lower| > |upper| + 1 → max(lower) → upper
- * - **Случай 2:** |upper| > |lower| → min(upper) → lower  
- * - Иначе баланс соблюдён
+ * **Инвариант ТЗ:** |lower| == |upper| ИЛИ |lower| == |upper| + 1
  * 
- * **Почему это правильно:**
- * - max(lower) всегда <= min(upper) → инвариант сохраняется
- * - После баланса: |lower| == |upper| или |lower| == |upper| + 1
+ * **Случаи:**
+ * - |lower| > |upper| + 1 → max(lower) → upper
+ * - |upper| > |lower| → min(upper) → lower
+ * 
+ * **Сохранение порядка:** max(lower) ≤ min(upper) всегда
  */
 void MedianCalculator::rebalance() {
-    // lower переполнен: перемещаем максимум в upper
     if (lower_half_.size() > upper_half_.size() + 1) {
         upper_half_.insert(*lower_half_.rbegin());
         lower_half_.erase(std::prev(lower_half_.end()));
-    }
-    // upper больше lower: перемещаем минимум в lower  
-    else if (upper_half_.size() > lower_half_.size()) {
+    } else if (upper_half_.size() > lower_half_.size()) {
         lower_half_.insert(*upper_half_.begin());
         upper_half_.erase(upper_half_.begin());
     }
-    // Иначе: |lower| == |upper| или |lower| == |upper| + 1 ✓
 }
 
 /**
- * \brief Возвращает медиану **только при изменении** >= 1e-8
+ * \brief Вычисление медианы с фильтром изменений **O(1)**
  * 
- * **Формула медианы (ТЗ):**
- * - |lower| == |upper|: (max(lower) + min(upper)) / 2.0
- * - |lower| == |upper| + 1: max(lower)
+ * **Формулы медианы:**
+ * - Чётное N: (max(lower) + min(upper)) / 2.0
+ * - Нечётное N: max(lower)
  * 
- * **Фильтр изменений (ТЗ):** 
- * - Сравнение с last_median_ по модулю с точностью 8 знаков (1e-8)
- * - Изменение → обновление last_median_ + возврат значения
- * - Без изменения → std::nullopt (пропуск записи)
+ * **Фильтр ТЗ:** |current - last_median_| ≥ 1e-8 → запись
  * 
- * \return Новое значение медианы или nullopt (нет данных/без изменений)
- * \Complexity O(1) — только чтение begin/rbegin
+ * \return median при изменении или nullopt
  */
-std::optional<double> MedianCalculator::median() const {
-    // Нет данных → ТЗ: nullopt
+std::optional<double> MedianCalculator::median() {
     if (lower_half_.empty()) {
         return std::nullopt;
     }
 
-    // Вычисление текущей медианы по инварианту куч
     double current_median = (lower_half_.size() == upper_half_.size())
-        ? (*lower_half_.rbegin() + *upper_half_.begin()) / 2.0  // Чётное: среднее двух средних
-        : *lower_half_.rbegin();                                  // Нечётное: среднее lower
+        ? (*lower_half_.rbegin() + *upper_half_.begin()) / 2.0
+        : *lower_half_.rbegin();
 
-    // ТЗ: запись только при изменении >= 8 знаков точности
     if (std::fabs(current_median - last_median_) >= 1e-8) {
-        last_median_ = current_median;  // Обновление для следующего сравнения
+        last_median_ = current_median;
         return current_median;
     }
-    return std::nullopt;  // Медиана не изменилась → пропуск записи
+    return std::nullopt;
 }
 
 } // namespace csv_median

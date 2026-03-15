@@ -1,9 +1,9 @@
 /**
  * \file median_calculator.hpp
  * \author Anastasiya Dorohina
- * \brief O(log N) инкрементальная медиана через две кучи (lower/upper)
- * \date 2026-03-08
- * \version 2.0
+ * \brief O(log N) инкрементальная медиана через две кучи **C++23**
+ * \date 2026-03-15
+ * \version 2.1
  */
 
 #pragma once
@@ -16,38 +16,49 @@ namespace csv_median {
 
 /**
  * \class MedianCalculator
- * \brief Вычисляет медиану в O(log N) на потоке цен
- *
- * Алгоритм двух куч:
- *  - lower_half_: max-heap (нижняя половина <= медианы)
- *  - upper_half_: min-heap (верхняя половина >= медианы)
- *  - rebalance(): балансирует размеры куч (|lower| == |upper| или |lower| == |upper| + 1)
- *
- * median() возвращает значение только при изменении >= 1e-8 (ТЗ)
+ * \brief **O(log N)** инкрементальная медиана двух кучами
+ * 
+ * **Алгоритм (ТЗ):**
+ * - lower_half_ (multiset): max-heap, нижняя половина ≤ медианы
+ * - upper_half_ (multiset): min-heap, верхняя половина ≥ медианы  
+ * - Инвариант: |lower| == |upper| ИЛИ |lower| == |upper| + 1
+ * - median(): возврат **только при изменении** ≥ 1e-8 (8 знаков ТЗ)
+ * 
+ * **Сложность:**
+ * - add_price(): O(log N)
+ * - median(): O(1)
+ * - Память: O(N)
  */
 class MedianCalculator {
 public:
     /**
-     * \brief Добавляет цену в медианный поток
-     * \param price Новое значение цены
+     * \brief Добавляет цену в поток **O(log N)**
+     * \param[in] price Цена для добавления
      */
     void add_price(double price);
 
     /**
-     * \brief Возвращает медиану только при изменении
-     * \return Новое значение медианы или nullopt если медиана не изменилась
+     * \brief Медиана при изменении ≥ 1e-8 **O(1)**
+     * 
+     * **Логика (ТЗ):**
+     * - |lower| == |upper|: (max(lower) + min(upper)) / 2
+     * - |lower| == |upper| + 1: max(lower)
+     * - Изменение ≥ 1e-8 → обновление last_median_ + возврат
+     * 
+     * \return median или nullopt (нет изменений/данных)
      */
-    [[nodiscard]] std::optional<double> median() const;
+    [[nodiscard]] std::optional<double> median();
 
 private:
     /**
-     * \brief Балансировка размеров двух куч
+     * \brief Балансировка куч **O(log N)**
+     * Восстанавливает инвариант размеров куч
      */
     void rebalance();
-
-    std::multiset<double> lower_half_;      ///< Нижняя половина (max через rbegin)
-    std::multiset<double> upper_half_;      ///< Верхняя половина (min через begin)
-    mutable double last_median_ = 0.0;      ///< Предыдущее значение для сравнения
+    
+    std::multiset<double> lower_half_;  ///< max-heap (rbegin)
+    std::multiset<double> upper_half_;  ///< min-heap (begin)
+    double last_median_ = 0.0;          ///< Для фильтрации изменений 1e-8
 };
 
 } // namespace csv_median
