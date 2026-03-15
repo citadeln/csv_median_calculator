@@ -7,8 +7,7 @@
  */
 
 #pragma once
-#include <string>
-#include <chrono>
+#include <cstdint>
 
 namespace csv_median {
 

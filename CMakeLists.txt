@@ -65,4 +65,4 @@ set_target_properties(csv_median_calculator PROPERTIES
 )
 
 message(STATUS "csv_median_calculator C++23 configured!")
-message(STATUS "toml++ path: ${tomlplusplus_SOURCE_DIR}/include")
+#message(STATUS "toml++ path: ${tomlplusplus_SOURCE_DIR}/include")

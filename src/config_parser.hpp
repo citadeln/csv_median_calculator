@@ -19,16 +19,15 @@ namespace fs = std::filesystem;
  * \brief Конфигурация обработки CSV файлов
  */
 struct Config {
-    fs::path              input_dir;      ///< Директория с CSV файлами
-    fs::path              output_dir;     ///< Директория результатов
-    std::vector<std::string> filename_mask; ///< Фильтры имен файлов (*.csv)
+    fs::path              input_dir;      
+    fs::path              output_dir;     
+    std::vector<std::string> filename_mask; 
 };
 
 /**
  * \brief Парсит config.toml в Config структуру
  * \param path Путь к config.toml файлу
  * \return Config с ТЗ дефолтами при ошибке
- * \warning При отсутствии файла возвращает дефолты ТЗ
  */
 Config parse_config(const fs::path& path);
 

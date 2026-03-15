@@ -1,7 +1,7 @@
 /**
  * \file main.cpp
  * \author Anastasiya Dorohina
- * \brief Главная логика: конфигурирование → чтение CSV → вычисление медианы → запись результата
+ * \brief Главная логика: конфигурирование -> чтение CSV -> вычисление медианы -> запись результата
  * \date 2026-03-08
  * \version 2.0
  */
@@ -10,113 +10,124 @@
 #include "csv_reader.hpp"
 #include "median_calculator.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <boost/program_options.hpp>
-#include <algorithm>
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
 /**
- * \brief Главная функция: выполняет весь рабочий процесс
+ * \brief Главная функция: выполняет весь рабочий процесс **строго по ТЗ**
  * 
- * Рабочий процесс:
- * 1. **Парсинг CLI аргументов** (Boost Program Options)
- * 2. **Чтение конфигурационного файла TOML** (ConfigParser)
- * 3. **Чтение CSV файлов** (CsvReader)
- * 4. **Стабильная сортировка данных** (Stable Sort)
- * 5. **Рассчёт медианы цен** (MedianCalculator)
- * 6. **Запись результатов в CSV** (OutputWriter)
+ * **Полный пайплайн:**
+ * 1. **Парсинг CLI** (Boost.Program_options): -config/-cfg или config.toml рядом с бинарником
+ * 2. **TOML парсинг** (toml++): валидация + ТЗ дефолты при ошибке  
+ * 3. **CSV сборка**: recursive scan + filename_mask + лексикографическая сортировка файлов
+ * 4. **stable_sort** по receive_ts (сохраняет порядок файлов при равных ts)
+ * 5. **Инкрементальная медиана** O(log N) через MedianCalculator
+ * 6. **Запись только при изменении** медианы >= 1e-8 (8 знаков точности)
+ * 7. **median_result.csv** в output_dir (перезапись при повторном запуске)
  * 
- * Формат выходных данных: `receive_ts;price_median` (8 знаков после запятой)
+ * **Обработка ошибок:** 
+ * - CLI → po::error (return 1)
+ * - TOML/файлы → ТЗ дефолты или пустой результат  
+ * - Файловая система → spdlog + graceful выход
+ * - **Никогда не crash** (catch(...))
  * 
- * \param[in] argc Аргументы командной строки
- * \param[in] argv Массив аргументов командной строки
- * \return 0 — успешное завершение, 1 — ошибка, 255 — критическая ошибка
+ * \param[in] argc Количество аргументов командной строки
+ * \param[in] argv Массив аргументов командной строки  
+ * \return 0 (OK), 1 (ошибка), 255 (критическая)
  */
 int main(int argc, char* argv[]) {
-    /// Настройка логирования
+    // ТЗ: spdlog паттерн + версия приложения
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     spdlog::info("csv_median_calculator v2.0 C++23");
 
     try {
-        /// 1. Парсинг CLI аргументов
+        // 1. Boost.Program_options: -config / -cfg
         po::options_description desc("Options");
         desc.add_options()
-            ("config,c", po::value<std::string>(), "config.toml path")
-            ("help,h", "show help");
+            ("config", po::value<std::string>(), "Path to config.toml")
+            ("cfg",    po::value<std::string>(), "Path to config.toml (alias)");
 
         po::variables_map vm;
-        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::store(po::command_line_parser(argc, argv)
+            .options(desc)
+            .style(po::command_line_style::allow_long
+                 | po::command_line_style::long_allow_adjacent
+                 | po::command_line_style::allow_dash_for_short)
+            .run(), vm);
         po::notify(vm);
 
-        if (vm.count("help")) {
-            std::cout << desc << std::endl;
-            return 0;
+        // Определение пути config.toml (ТЗ: дефолт рядом с exe)
+        fs::path config_path;
+        if (vm.count("config")) {
+            config_path = vm["config"].as<std::string>();
+        } else if (vm.count("cfg")) {
+            config_path = vm["cfg"].as<std::string>();
+        } else {
+            config_path = fs::path(argv[0]).parent_path() / "config.toml";
         }
 
-        /// 2. Чтение конфигурационного файла TOML
-        fs::path config_path = vm.count("config") ? 
-            fs::path(vm["config"].as<std::string>()) : "config.toml";
-            
+        spdlog::info("Using config: {}", config_path.string());
+
+        // 2. TOML парсинг + валидация (ТЗ дефолты при ошибке)
         auto config = csv_median::parse_config(config_path);
-        spdlog::info("Config: input={} mask=[{}]", 
-                     config.input_dir.string(),
-                     config.filename_mask.empty() ? "all" :
-                     (config.filename_mask.size() > 1 ? 
-                      config.filename_mask[0] + ", " + config.filename_mask[1] : 
-                      config.filename_mask[0]));
 
-        /// 3. Чтение CSV файлов
+        // 3. CSV сборка: все файлы по маске → лексикографический порядок
         auto events = csv_median::read_csv_files(config.input_dir, config.filename_mask);
-        spdlog::info("Found {} events", events.size());
+        spdlog::info("Total events read: {}", events.size());
 
-        /// 4. Стабильная сортировка по временной метке
-        std::stable_sort(events.begin(), events.end(), 
-            [](const csv_median::MarketEvent& a, const csv_median::MarketEvent& b) {
-                return a.receive_ts < b.receive_ts;
-            });
-        
-        spdlog::info("Sorted by receive_ts: {} events", events.size());
+        if (events.empty()) {
+            spdlog::warn("No events found, output file will contain only header");
+        }
 
-        /// 5. Вычисление медианы цен
-        csv_median::MedianCalculator calc;
+        // 4. ТЗ: stable_sort сохраняет порядок файлов при равных receive_ts
+        std::ranges::stable_sort(events, {}, &csv_median::MarketEvent::receive_ts);
+        spdlog::info("Sorted {} events by receive_ts", events.size());
+
+        // 5. Выходной файл median_result.csv (ТЗ: перезапись)
         auto output_path = config.output_dir / "median_result.csv";
-        
         std::ofstream out(output_path);
         if (!out.is_open()) {
-            spdlog::error("❌ Cannot create {}", output_path.string());
+            spdlog::error("Cannot create output file: {}", output_path.string());
             return 1;
         }
-        
-        /// 6. Запись медианы в CSV файл
-        out << "receive_ts;price_median\n";
-        out.precision(8);
-        out << std::fixed;
 
+        // ТЗ: формат + 8 знаков точности
+        out << "receive_ts;price_median\n";
+        out << std::fixed << std::setprecision(8);
+
+        // 6. Инкрементальная медиана O(log N)
+        csv_median::MedianCalculator calc;
         int change_count = 0;
+
+        // ТЗ: запись ТОЛЬКО при изменении медианы >= 1e-8
         for (const auto& event : events) {
             calc.add_price(event.price);
-            if (auto median = calc.median()) {
-                out << event.receive_ts << ";" << *median << "\n";
-                change_count++;
+            if (const auto median_opt = calc.median()) {
+                out << event.receive_ts << ";" << *median_opt << "\n";
+                ++change_count;
             }
         }
+
         out.close();
-
         spdlog::info("Saved {} median changes to {}", change_count, output_path.string());
-        spdlog::info("✅ Done!");
+        spdlog::info("Done!");
 
+    } catch (const po::error& ex) {
+        spdlog::error("CLI error: {}", ex.what());
+        return 1;
     } catch (const std::exception& ex) {
         spdlog::error("Exception: {}", ex.what());
         return 1;
     } catch (...) {
-        spdlog::critical("❌ Unknown error");
+        spdlog::critical("Unknown error");
         return 255;
     }
-    
+
     return 0;
 }
