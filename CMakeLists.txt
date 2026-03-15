@@ -39,6 +39,7 @@ add_executable(csv_median_calculator
     src/main.cpp
     src/config_parser.cpp
     src/csv_reader.cpp    
+    src/median_calculator.cpp
     src/stats_calculator.cpp      # ТЗ 7.2
     src/config_parser.hpp
     src/csv_reader.hpp
