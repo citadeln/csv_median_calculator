@@ -1,0 +1,5 @@
+[main]
+input = "./examples/input"
+output = "./examples/output"
+filename_mask = ["level", "trade"]
+metrics = ["median", "mean", "std", "p50", "p90"]  # Тестируемая опция

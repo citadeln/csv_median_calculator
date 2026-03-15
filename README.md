@@ -136,7 +136,21 @@ receive_ts;price_median
 
 ## Структура проекта
 
-```
+```# Сборка тестов
+mkdir -p build/tests && cd build/tests
+cmake ../../tests -DCMAKE_BUILD_TYPE=Debug
+cmake --build . -j$(nproc)
+
+# Запуск
+./stats_tests --report_level=detailed
+
+# Ожидаемый вывод:
+# Running 6 test cases...
+# StatsCalculatorTest (6)
+#   Test_Metrics_Median_Mean_Std *** PASSED ***
+#   Test_Percentiles_P50_P90_P95_P99 *** PASSED ***
+# ...
+
 csv_median_calculator/
 ├── CMakeLists.txt          # Основной файл сборки CMake
 ├── Doxyfile                # Конфигурация для генерации документации
@@ -166,4 +180,23 @@ csv_median_calculator/
 └── tests/                  # Директория для тестов
     └── ...                 # Unit-тесты и вспомогательные файлы
 
----
+```
+
+## Запуск тестов
+
+```bash
+# Сборка тестов
+mkdir -p build/tests && cd build/tests
+cmake ../../tests -DCMAKE_BUILD_TYPE=Debug
+cmake --build . -j$(nproc)
+
+# Запуск
+./stats_tests --report_level=detailed
+
+# Ожидаемый вывод:
+# Running 6 test cases...
+# StatsCalculatorTest (6)
+#   Test_Metrics_Median_Mean_Std *** PASSED ***
+#   Test_Percentiles_P50_P90_P95_P99 *** PASSED ***
+# ...
+```

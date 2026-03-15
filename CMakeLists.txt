@@ -33,15 +33,23 @@ FetchContent_MakeAvailable(tomlplusplus)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 
-# executable sources
+# Boost: program_options + accumulators (системная установка)
+find_package(Boost REQUIRED COMPONENTS 
+    program_options 
+    accumulators
+)
+
+# Executable sources (+ stats_calculator.cpp)
 add_executable(csv_median_calculator
     src/main.cpp
     src/config_parser.cpp
     src/csv_reader.cpp
     src/median_calculator.cpp
+    src/stats_calculator.cpp
     src/config_parser.hpp
     src/csv_reader.hpp
     src/median_calculator.hpp
+    src/stats_calculator.hpp
     src/market_record.hpp
 )
 
@@ -53,6 +61,7 @@ target_include_directories(csv_median_calculator PRIVATE
 target_link_libraries(csv_median_calculator PRIVATE
     spdlog::spdlog
     Boost::program_options
+    Boost::accumulators
 )
 
 target_compile_options(csv_median_calculator PRIVATE
@@ -64,5 +73,21 @@ set_target_properties(csv_median_calculator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-message(STATUS "csv_median_calculator C++23 configured!")
-#message(STATUS "toml++ path: ${tomlplusplus_SOURCE_DIR}/include")
+message(STATUS "csv_median_calculator C++23 + Boost.Accumulators configured!")
+
+# Unit тесты Boost.Test
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+
+add_executable(stats_tests
+    test_stats_calculator.cpp
+)
+
+target_link_libraries(stats_tests PRIVATE
+    Boost::unit_test_framework
+    Boost::accumulators
+    spdlog::spdlog
+)
+
+target_include_directories(stats_tests PRIVATE ../src)
+
+add_test(NAME StatsCalculatorTest COMMAND stats_tests)

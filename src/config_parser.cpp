@@ -56,6 +56,20 @@ Config parse_config(const fs::path& path) {
                 }
             }
 
+            // [main].metrics: array → vector<string> (ТЗ 7.2)
+            if (auto metrics_array = main_table["metrics"]; metrics_array && metrics_array.is_array()) {
+                config.metrics.clear();
+                for (const auto& item : *metrics_array.as_array()) {
+                    if (item.is_string()) {
+                        config.metrics.push_back(item.as_string()->get());
+        }
+    }
+    
+    spdlog::info("Metrics: [{}]", 
+        config.metrics.empty() ? "none" : 
+        fmt::join(config.metrics, ", "));
+}
+
             // Логирование результата парсинга
             spdlog::info("✅ TOML parsed: input='{}' mask=[{}]",
                         config.input_dir.string(),

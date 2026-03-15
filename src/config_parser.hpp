@@ -21,7 +21,8 @@ namespace fs = std::filesystem;
 struct Config {
     fs::path              input_dir;      
     fs::path              output_dir;     
-    std::vector<std::string> filename_mask; 
+    std::vector<std::string> filename_mask;
+    std::vector<std::string> metrics;
 };
 
 /**
